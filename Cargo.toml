@@ -5,7 +5,16 @@ authors = ["Gnarwhal <gnarlynarwhal8@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-amethyst = "0.15.0"
+amethyst_window = "0.5.0"
+winit = "0.22.2"
+
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+
+[dependencies.amethyst]
+version = "0.15.0"
+features = ["no-slow-safety-checks", "sdl_controller"]
 
 [features]
 default = ["vulkan"]

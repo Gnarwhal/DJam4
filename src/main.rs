@@ -24,9 +24,14 @@
  *
  *******************************************************************************/
 
+mod components;
+mod states;
+mod systems;
+
 use amethyst::{
+	core::TransformBundle,
 	prelude::*,
-	input::{InputBundle, StringBindings},
+	input::{InputBundle},
 	renderer::{
 		RenderingBundle,
 		types::DefaultBackend,
@@ -34,34 +39,38 @@ use amethyst::{
 	},
 	utils::application_root_dir,
 };
-
-pub struct DJam;
-
-impl SimpleState for DJam {}
+use amethyst_window::{DisplayConfig, Icon};
+use std::path::PathBuf;
 
 fn main() -> amethyst::Result<()> {
 	amethyst::start_logger(Default::default());
 
 	let app_root = application_root_dir()?;
 
-	let assets_dir = app_root.join("assets");
-	let display_config_path = app_root.join("config").join("display.ron");
-	let binding_path = app_root.join("config").join("bindings.ron");
+	let resources_dir = app_root.join("resources");
+	let display_config_path = resources_dir.join("display_config.ron");
+	let binding_path = resources_dir.join("bindings.ron");
 
-	let input_bundle = InputBundle::<StringBindings>::new().with_bindings_from_file(binding_path)?;
+	let mut display_config = DisplayConfig::load(display_config_path)?;
+	display_config.icon = Some(PathBuf::from("resources/icon.png"));
+
+	let input_bundle = InputBundle::<systems::PlayerBindings>::new()
+		.with_bindings_from_file(binding_path)?;
 
 	let game_data = GameDataBuilder::default()
+		.with_bundle(TransformBundle::new())?
 		.with_bundle(input_bundle)?
 		.with_bundle(
 			RenderingBundle::<DefaultBackend>::new()
 				.with_plugin(
-					RenderToWindow::from_config_path(display_config_path)?
+					RenderToWindow::from_config(display_config)
 						.with_clear([0.0, 0.0, 0.0, 1.0]),
 				)
 				.with_plugin(RenderFlat2D::default())
-		)?;
+		)?
+		.with(systems::PlayerSystem, "player_system", &["input_system"]);
 
-	let mut game = Application::new(assets_dir,  DJam,game_data)?;
+	let mut game = Application::new(resources_dir, states::LevelState, game_data)?;
 	game.run();
 
 	Ok(())

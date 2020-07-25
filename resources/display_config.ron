@@ -1,0 +1,5 @@
+(
+    title: "DJam 4",
+    resizable: true,
+    dimensions: Some((1280, 720)),
+)
