@@ -4,10 +4,6 @@ version = "0.1.0"
 authors = ["Gnarwhal <gnarlynarwhal8@gmail.com>"]
 edition = "2018"
 
-[dependencies]
-amethyst_window = "0.5.0"
-winit = "0.22.2"
-
 [dependencies.serde]
 version = "1"
 features = ["derive"]
@@ -21,3 +17,4 @@ default = ["vulkan"]
 empty   = ["amethyst/empty"]
 metal   = ["amethyst/metal"]
 vulkan  = ["amethyst/vulkan"]
+

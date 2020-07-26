@@ -28,4 +28,4 @@ pub use self::{
 	level::LevelState
 };
 
-mod level;
+pub mod level;

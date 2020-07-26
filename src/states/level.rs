@@ -27,18 +27,21 @@
 use amethyst::{
 	assets::{AssetStorage, Loader, Handle},
 	core::transform::Transform,
-	ecs::prelude::{Component, DenseVecStorage},
 	prelude::*,
 	renderer::{Camera, ImageFormat, SpriteRender, SpriteSheet, SpriteSheetFormat, Texture}
 };
+use crate::components::Dynamic;
+use crate::components::Gravity;
 use crate::components::Player;
 
-pub const CAMERA_WIDTH:  f32 = 1920.0;
-pub const CAMERA_HEIGHT: f32 = 1080.0;
+pub const CAMERA_WIDTH:  f32 = 384.0;
+pub const CAMERA_HEIGHT: f32 = 216.0;
+
+pub const BLOCK_SIZE: f32 = 16.0;
 
 fn initialize_camera(world: &mut World) {
 	let mut transform = Transform::default();
-	transform.set_translation_xyz(CAMERA_WIDTH * 0.5, CAMERA_HEIGHT * 0.5, 1.0);
+	transform.set_translation_xyz(0.0, 0.0, 1.0);
 
 	world
 		.create_entity()
@@ -47,12 +50,46 @@ fn initialize_camera(world: &mut World) {
 		.build();
 }
 
-fn initialize_player(world: &mut World) {
+fn initialize_player(world: &mut World, sprite_sheet_handle: Handle<SpriteSheet>) {
+	let sprite_render = SpriteRender{
+		sprite_sheet: sprite_sheet_handle,
+		sprite_number: 0,
+	};
+
+	let mut transform = Transform::default();
+	transform.set_translation_xyz(0.0, 48.0, 0.0);
+
 	world
 		.create_entity()
-		.with(Player::new(0))
+		.with(sprite_render)
+		.with(Player::default())
 		.with(Transform::default())
+		.with(Dynamic::default())
+		.with(Gravity)
+		.with(transform)
 		.build();
+}
+
+fn load_sprite_sheet(world: &mut World) -> Handle<SpriteSheet> {
+	let texture_handle = {
+		let loader = world.read_resource::<Loader>();
+		let texture_storage = world.read_resource::<AssetStorage<Texture>>();
+		loader.load(
+			"sprites.png",
+			ImageFormat::default(),
+			(),
+			&texture_storage,
+		)
+	};
+
+	let loader = world.read_resource::<Loader>();
+	let sprite_sheet_store = world.read_resource::<AssetStorage<SpriteSheet>>();
+	loader.load(
+		"sprites.ron",
+		SpriteSheetFormat(texture_handle),
+		(),
+		&sprite_sheet_store,
+	)
 }
 
 pub struct LevelState;
@@ -61,7 +98,9 @@ impl SimpleState for LevelState {
 	fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
 		let world = data.world;
 
+		let sprite_sheet_handle = load_sprite_sheet(world);
+
 		initialize_camera(world);
-		initialize_player(world);
+		initialize_player(world, sprite_sheet_handle);
 	}
 }

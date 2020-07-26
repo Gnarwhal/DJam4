@@ -13,6 +13,7 @@
     },
     actions: {
         ShortHop: [
+            [ScanCode(57)],
             [Controller(0, X)],
             [Controller(1, X)],
             [Controller(2, X)],
@@ -22,7 +23,6 @@
         ],
         FullHop: [
             [ScanCode(17)],
-            [ScanCode(57)],
             [Controller(0, A)],
             [Controller(1, A)],
             [Controller(2, A)],

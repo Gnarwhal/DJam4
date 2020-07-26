@@ -24,13 +24,39 @@
  *
  *******************************************************************************/
 
-pub use self::{
-	physics::ForceSystem,
-	physics::CollisionSystem,
-
-	player::PlayerSystem,
-	player::PlayerBindings,
+use amethyst::{
+	core::math::Vector2,
+	ecs::prelude::{Component, DenseVecStorage}
 };
 
-pub mod physics;
-pub mod player;
+pub struct Gravity;
+
+impl Component for Gravity {
+	type Storage = DenseVecStorage<Self>;
+}
+
+pub struct Dynamic {
+	pub velocity: Vector2<f32>,
+	pub grounded: bool,
+	pub friction_coefficient: f32,
+}
+
+impl Default for Dynamic {
+	fn default() -> Self {
+		Dynamic {
+			velocity: Vector2::new(0.0, 0.0),
+			grounded: false,
+			friction_coefficient: 1.0,
+		}
+	}
+}
+
+impl Component for Dynamic {
+	type Storage = DenseVecStorage<Self>;
+}
+
+pub struct Static;
+
+impl Component for Static {
+	type Storage = DenseVecStorage<Self>;
+}

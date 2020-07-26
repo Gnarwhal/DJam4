@@ -27,13 +27,16 @@
 use std::fmt::{self, Display};
 
 use amethyst::{
-	core::{Transform, SystemDesc},
+	core::timing::Time,
 	derive::SystemDesc,
-	ecs::{Join, Read, ReadStorage, System, SystemData, World, WriteStorage},
-	input::{InputHandler, BindingTypes, Bindings},
+	ecs::{Join, Read, System, SystemData, WriteStorage},
+	input::{InputHandler, BindingTypes},
 };
 use serde::{Serialize, Deserialize};
+use crate::components::Dynamic;
 use crate::components::Player;
+use crate::systems::physics::GRAVITY;
+use crate::states::level::BLOCK_SIZE;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MovementBindings {
@@ -58,7 +61,6 @@ impl Display for ActionBindings {
 	}
 }
 
-
 #[derive(Debug)]
 pub struct PlayerBindings;
 
@@ -67,30 +69,93 @@ impl BindingTypes for PlayerBindings {
 	type Action = ActionBindings;
 }
 
+pub const FULL_HOP_TIME: f32 = 0.35;
+pub const SHORT_HOP_HEIGHT:  f32 = 1.5  * BLOCK_SIZE;
+pub const FULL_HOP_HEIGHT:   f32 = 3.25 * BLOCK_SIZE;
+pub const AERIAL_HOP_HEIGHT: f32 = 2.25 * BLOCK_SIZE;
+const JUMP_COUNT: usize = 2;
+
+pub const MAX_GROUND_SPEED: f32 = 10.0 * BLOCK_SIZE;
+const GROUND_ACCELERATION: f32 = (MAX_GROUND_SPEED * 2.0) / 0.1;
+
+pub const MAX_AERIAL_SPEED: f32 = 12.0 * BLOCK_SIZE;
+const AERIAL_ACCELERATION: f32 = (MAX_AERIAL_SPEED * 2.0) / 0.5;
+const AERIAL_JUMP_HORZ_BOOST: f32 = AERIAL_ACCELERATION * 0.3;
+
 #[derive(SystemDesc)]
 pub struct PlayerSystem;
 
 impl <'s> System<'s> for PlayerSystem {
 	type SystemData = (
-		WriteStorage<'s, Transform>,
-		ReadStorage<'s, Player>,
+		WriteStorage<'s, Dynamic>,
+		WriteStorage<'s, Player>,
 		Read<'s, InputHandler<PlayerBindings>>,
+		Read<'s, Time>,
 	);
 
-	fn run(&mut self, (mut transforms, players, input): Self::SystemData) {
-		for (transform, _) in (&mut transforms, &players).join() {
+	fn run(&mut self, (mut dynamics, mut players, input, delta_time): Self::SystemData) {
+		for (dynamic, player) in (&mut dynamics, &mut players).join() {
+			let velocity = &mut dynamic.velocity;
 			let mut movement = 0.0f32;
 			for input_id in -1..6 {
 				movement += input
 					.axis_value(&MovementBindings::Horizontal(input_id))
 					.unwrap_or(0.0);
+
+			}
+			movement.max(-1.0).min(1.0);
+			if movement != 0.0 {
+				dynamic.friction_coefficient = 0.0;
+			} else {
+				dynamic.friction_coefficient = 1.0;
 			}
 
-			if movement != 0.0 {
-				println!("Movement: {}", movement);
+			//////// OLD DEBUGGING STUFF - MAY BE USEFUL LATER ////////
+			/*print!("Codes: ");
+			for code in input.scan_codes_that_are_down() {
+				print!("{}, ", code);
 			}
-			if input.action_is_down(&ActionBindings::FullHop).unwrap_or(false) {
-				println!("Yump yump!");
+			println!();*/
+			///////////////////////////////////////////////////////////
+
+			if dynamic.grounded {
+				player.reset_jumps(JUMP_COUNT);
+
+				if (movement < 0.0 && velocity.x > -MAX_GROUND_SPEED)
+				|| (movement > 0.0 && velocity.x <  MAX_GROUND_SPEED) {
+					velocity.x += movement * GROUND_ACCELERATION * delta_time.delta_seconds();
+					velocity.x = velocity.x.max(-MAX_GROUND_SPEED).min(MAX_GROUND_SPEED);
+				}
+
+				let SHORT_HOP_SPEED: f32 = (-2.0 * SHORT_HOP_HEIGHT * GRAVITY).sqrt();
+				let FULL_HOP_SPEED:  f32 = (-2.0 * FULL_HOP_HEIGHT  * GRAVITY).sqrt();
+				if player.jump_ready {
+					if input.action_is_down(&ActionBindings::ShortHop).unwrap_or(false) {
+						velocity.y = SHORT_HOP_SPEED;
+						player.trigger_jump();
+					} else if input.action_is_down(&ActionBindings::FullHop).unwrap_or(false) {
+						velocity.y = FULL_HOP_SPEED;
+						player.trigger_jump();
+					}
+				}
+				velocity.x = velocity.x.max(-MAX_GROUND_SPEED).min(MAX_GROUND_SPEED);
+			} else {
+				let AERIAL_HOP_SPEED:  f32 = (-2.0 * AERIAL_HOP_HEIGHT * GRAVITY).sqrt();
+				if player.jump_ready
+				&& player.jump_count > 0
+				&& (input.action_is_down(&ActionBindings::ShortHop).unwrap_or(false)
+				 || input.action_is_down(&ActionBindings::FullHop ).unwrap_or(false)) {
+					velocity.y = AERIAL_HOP_SPEED;
+					player.trigger_jump();
+					velocity.x += movement * AERIAL_JUMP_HORZ_BOOST;
+				} else {
+					if !(input.action_is_down(&ActionBindings::ShortHop).unwrap_or(false)
+					  || input.action_is_down(&ActionBindings::FullHop ).unwrap_or(false)) {
+						player.jump_ready = true;
+					}
+					velocity.x += movement * AERIAL_ACCELERATION * delta_time.delta_seconds();
+				}
+				velocity.x = velocity.x.max(-MAX_AERIAL_SPEED).min(MAX_AERIAL_SPEED);
 			}
 		}
 	}

@@ -25,7 +25,12 @@
  *******************************************************************************/
 
 pub use self::{
-	player::Player
+	physics::Gravity,
+	physics::Dynamic,
+	physics::Static,
+
+	player::Player,
 };
 
-mod player;
+pub mod physics;
+pub mod player;

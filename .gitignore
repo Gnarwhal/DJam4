@@ -5,3 +5,5 @@ Cargo.lock
 
 *.dll
 
+djam_4.*
+

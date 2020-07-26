@@ -24,18 +24,32 @@
  *
  *******************************************************************************/
 
+use core::default::Default;
 use amethyst::{
 	ecs::prelude::{Component, DenseVecStorage},
 };
 
 pub struct Player {
-	pub id: u32,
+	pub jump_ready: bool,
+	pub jump_count: usize,
 }
 
 impl Player {
-	pub fn new(id: u32) -> Player {
+	pub fn reset_jumps(&mut self, jump_count: usize) {
+		self.jump_ready = true;
+		self.jump_count = jump_count;
+	}
+
+	pub fn trigger_jump(&mut self) {
+		self.jump_ready  = false;
+		self.jump_count -= 1;
+	}
+}
+impl Default for Player {
+	fn default() -> Player {
 		return Player{
-			id
+			jump_ready: true,
+			jump_count: 0,
 		};
 	}
 }

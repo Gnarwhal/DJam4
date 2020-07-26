@@ -38,8 +38,9 @@ use amethyst::{
 		plugins::{RenderFlat2D, RenderToWindow},
 	},
 	utils::application_root_dir,
+	window::{DisplayConfig, MonitorIdent},
+	winit::EventsLoop,
 };
-use amethyst_window::{DisplayConfig, Icon};
 use std::path::PathBuf;
 
 fn main() -> amethyst::Result<()> {
@@ -51,8 +52,14 @@ fn main() -> amethyst::Result<()> {
 	let display_config_path = resources_dir.join("display_config.ron");
 	let binding_path = resources_dir.join("bindings.ron");
 
+	let events_loop = EventsLoop::new();
+
+	let monitor = MonitorIdent::from_primary(&events_loop);
+
 	let mut display_config = DisplayConfig::load(display_config_path)?;
 	display_config.icon = Some(PathBuf::from("resources/icon.png"));
+	display_config.dimensions = Some(monitor.monitor_id(&events_loop).get_dimensions().into());
+	display_config.fullscreen = Some(monitor);
 
 	let input_bundle = InputBundle::<systems::PlayerBindings>::new()
 		.with_bindings_from_file(binding_path)?;
@@ -68,7 +75,9 @@ fn main() -> amethyst::Result<()> {
 				)
 				.with_plugin(RenderFlat2D::default())
 		)?
-		.with(systems::PlayerSystem, "player_system", &["input_system"]);
+		.with(systems::ForceSystem, "force_system", &[])
+		.with(systems::PlayerSystem, "player_system", &["force_system", "input_system"])
+		.with(systems::CollisionSystem, "physics_system", &["player_system"]);
 
 	let mut game = Application::new(resources_dir, states::LevelState, game_data)?;
 	game.run();
