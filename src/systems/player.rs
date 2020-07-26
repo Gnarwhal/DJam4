@@ -27,15 +27,21 @@
 use std::fmt::{self, Display};
 
 use amethyst::{
-	core::timing::Time,
+	core::{
+		timing::Time,
+		Transform,
+		math::Vector3,
+	},
 	derive::SystemDesc,
-	ecs::{Join, Read, System, SystemData, WriteStorage},
+	ecs::{Join, Read, ReadStorage, System, SystemData, WriteStorage},
 	input::{InputHandler, BindingTypes},
+	renderer::{Camera},
 };
 use serde::{Serialize, Deserialize};
 use crate::components::Dynamic;
 use crate::components::Player;
 use crate::systems::physics::GRAVITY;
+use crate::states::level::{Level, CAMERA_WIDTH, CAMERA_HEIGHT};
 use crate::states::level::BLOCK_SIZE;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,23 +75,23 @@ impl BindingTypes for PlayerBindings {
 	type Action = ActionBindings;
 }
 
-pub const FULL_HOP_TIME: f32 = 0.35;
-pub const SHORT_HOP_HEIGHT:  f32 = 1.5  * BLOCK_SIZE;
-pub const FULL_HOP_HEIGHT:   f32 = 3.25 * BLOCK_SIZE;
-pub const AERIAL_HOP_HEIGHT: f32 = 2.25 * BLOCK_SIZE;
+pub const FULL_HOP_TIME:     f32 = 0.3;
+pub const SHORT_HOP_HEIGHT:  f32 = 1.25  * BLOCK_SIZE;
+pub const FULL_HOP_HEIGHT:   f32 = 2.25 * BLOCK_SIZE;
+pub const AERIAL_HOP_HEIGHT: f32 = 1.25 * BLOCK_SIZE;
 const JUMP_COUNT: usize = 2;
 
-pub const MAX_GROUND_SPEED: f32 = 10.0 * BLOCK_SIZE;
+pub const MAX_GROUND_SPEED: f32 = 6.0 * BLOCK_SIZE;
 const GROUND_ACCELERATION: f32 = (MAX_GROUND_SPEED * 2.0) / 0.1;
 
-pub const MAX_AERIAL_SPEED: f32 = 12.0 * BLOCK_SIZE;
+pub const MAX_AERIAL_SPEED: f32 = 8.0 * BLOCK_SIZE;
 const AERIAL_ACCELERATION: f32 = (MAX_AERIAL_SPEED * 2.0) / 0.5;
 const AERIAL_JUMP_HORZ_BOOST: f32 = AERIAL_ACCELERATION * 0.3;
 
 #[derive(SystemDesc)]
-pub struct PlayerSystem;
+pub struct PlayerMovementSystem;
 
-impl <'s> System<'s> for PlayerSystem {
+impl <'s> System<'s> for PlayerMovementSystem {
 	type SystemData = (
 		WriteStorage<'s, Dynamic>,
 		WriteStorage<'s, Player>,
@@ -157,6 +163,41 @@ impl <'s> System<'s> for PlayerSystem {
 				}
 				velocity.x = velocity.x.max(-MAX_AERIAL_SPEED).min(MAX_AERIAL_SPEED);
 			}
+		}
+	}
+}
+
+#[derive(SystemDesc)]
+pub struct CameraFollowSystem;
+
+impl<'s> System<'s> for CameraFollowSystem {
+	type SystemData = (
+		WriteStorage<'s, Player>,
+		ReadStorage<'s, Camera>,
+		WriteStorage<'s, Transform>,
+		Read<'s, Level>,
+	);
+
+	fn run(&mut self, (mut players, cameras, mut transforms, level): Self::SystemData) {
+		let mut player_transform = Vector3::new(0.0, 0.0, 0.0);
+		for (current_player_transform, _) in (&transforms, &mut players).join() {
+			player_transform = current_player_transform.translation().clone();
+		}
+		for (camera_transform, _) in (&mut transforms, &cameras).join() {
+			const HALF_WIDTH:  f32 = CAMERA_WIDTH  / 2.0;
+			const HALF_HEIGHT: f32 = CAMERA_HEIGHT / 2.0;
+			if player_transform.x - HALF_WIDTH < level.left {
+				player_transform.x = level.left + HALF_WIDTH;
+			} else if player_transform.x + HALF_WIDTH > level.right {
+				player_transform.x = level.right - HALF_WIDTH;
+			}
+
+			if player_transform.y - HALF_HEIGHT < level.bottom {
+				player_transform.y = level.bottom + HALF_HEIGHT;
+			} else if player_transform.y + HALF_HEIGHT > level.top {
+				player_transform.y = level.top - HALF_HEIGHT;
+			}
+			camera_transform.set_translation_xyz(player_transform.x, player_transform.y, 1.0);
 		}
 	}
 }

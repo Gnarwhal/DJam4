@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Gnarwhal <gnarlynarwhal8@gmail.com>"]
 edition = "2018"
 
+[dependencies]
+image = "0.23.7"
+
 [dependencies.serde]
 version = "1"
 features = ["derive"]

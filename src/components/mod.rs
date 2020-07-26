@@ -27,10 +27,12 @@
 pub use self::{
 	physics::Gravity,
 	physics::Dynamic,
-	physics::Static,
 
 	player::Player,
+
+	tile::Tile,
 };
 
 pub mod physics;
 pub mod player;
+pub mod tile;

@@ -28,8 +28,9 @@ pub use self::{
 	physics::ForceSystem,
 	physics::CollisionSystem,
 
-	player::PlayerSystem,
 	player::PlayerBindings,
+	player::PlayerMovementSystem,
+	player::CameraFollowSystem,
 };
 
 pub mod physics;

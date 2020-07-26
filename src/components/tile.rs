@@ -26,38 +26,22 @@
 
 use core::default::Default;
 use amethyst::{
-	core::math::Vector2,
-	ecs::prelude::{Component, DenseVecStorage, NullStorage}
+	ecs::prelude::{Component, DenseVecStorage},
 };
 
-pub struct Gravity;
-
-impl Component for Gravity {
-	type Storage = NullStorage<Self>;
+pub enum Tile {
+	Background,
+	Ground,
+	Start,
+	End,
 }
 
-impl Default for Gravity {
+impl Default for Tile {
 	fn default() -> Self {
-		Gravity
+		Tile::Background
 	}
 }
 
-pub struct Dynamic {
-	pub velocity: Vector2<f32>,
-	pub grounded: bool,
-	pub friction_coefficient: f32,
-}
-
-impl Default for Dynamic {
-	fn default() -> Self {
-		Dynamic {
-			velocity: Vector2::new(0.0, 0.0),
-			grounded: false,
-			friction_coefficient: 1.0,
-		}
-	}
-}
-
-impl Component for Dynamic {
+impl Component for Tile {
 	type Storage = DenseVecStorage<Self>;
 }

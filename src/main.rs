@@ -53,7 +53,6 @@ fn main() -> amethyst::Result<()> {
 	let binding_path = resources_dir.join("bindings.ron");
 
 	let events_loop = EventsLoop::new();
-
 	let monitor = MonitorIdent::from_primary(&events_loop);
 
 	let mut display_config = DisplayConfig::load(display_config_path)?;
@@ -76,8 +75,9 @@ fn main() -> amethyst::Result<()> {
 				.with_plugin(RenderFlat2D::default())
 		)?
 		.with(systems::ForceSystem, "force_system", &[])
-		.with(systems::PlayerSystem, "player_system", &["force_system", "input_system"])
-		.with(systems::CollisionSystem, "physics_system", &["player_system"]);
+		.with(systems::PlayerMovementSystem, "player_movement_system", &["force_system", "input_system"])
+		.with(systems::CollisionSystem, "collision_system", &["player_movement_system"])
+		.with(systems::CameraFollowSystem, "player_post_collision_system", &["collision_system"]);
 
 	let mut game = Application::new(resources_dir, states::LevelState, game_data)?;
 	game.run();
